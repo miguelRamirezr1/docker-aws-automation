@@ -1,0 +1,80 @@
+services:
+  orion:
+    image: fiware/orion-ld
+    hostname: orion
+    container_name: orion
+    networks:
+      - default
+    expose:
+      - "1026"
+    ports:
+      - "1026:1026"
+    depends_on:
+      - mongo-db
+    command: -dbhost mongo-db
+
+  quantumleap:
+    image: orchestracities/quantumleap
+    hostname: quantumleap
+    container_name: quantumleap
+    networks:
+      - default
+    expose:
+      - "8668"
+    ports:
+      - "8668:8668"
+    depends_on:
+      - crate-db
+    environment:
+      - CRATE_HOST=crate-db
+
+  mongo-db:
+    image: mongo:3.6
+    hostname: mongo-db
+    container_name: mongo-db
+    networks:
+      - default
+    expose:
+      - "27017"
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-db:/data/db
+
+  crate-db:
+    image: crate
+    hostname: crate-db
+    container_name: crate-db
+    networks:
+      - default
+    ports:
+      - "4200:4200"
+      - "5432:5432"
+      - "4300:4300"
+    command: crate -Cauth.host_based.enabled=false -Ccluster.name=cluster -Chttp.cors.enabled=true -Chttp.cors.allow-origin="*"
+
+  grafana:
+    image: grafana/grafana
+    hostname: grafana
+    container_name: grafana
+    networks:
+      - default
+    expose:
+      - "3000"
+    ports:
+      - "3000:3000"
+    depends_on:
+      - crate-db
+    volumes:
+      - grafana:/var/lib/grafana
+
+networks:
+  default:
+    ipam:
+      config:
+      - subnet: 172.19.1.0/24
+volumes:
+  mongo-db: ~
+  crate-db: ~
+  grafana: ~
+
