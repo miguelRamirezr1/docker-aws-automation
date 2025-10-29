@@ -299,7 +299,7 @@ resource "aws_instance" "docker_host" {
 
   # Volume tags
   volume_tags = {
-    Name        = "${var.project_name}-volume"
+    Name        = "${var.project_name}-volume1"
     Project     = var.project_name
     Environment = "production"
   }
