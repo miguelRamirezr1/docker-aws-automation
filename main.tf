@@ -209,7 +209,7 @@ resource "aws_instance" "docker_host" {
     encrypted             = true
 
     tags = {
-      Name = "${var.project_name}-root-volume"
+      Name = "${var.project_name}-root-volume2"
     }
   }
 
