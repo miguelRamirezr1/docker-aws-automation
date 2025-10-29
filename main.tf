@@ -12,11 +12,19 @@ provider "aws" {
   region = "us-east-1"
 }
 
+#IMPORTANTE para Learner Lab - ignorar tags requeridos
+default_tags {
+  tags = {
+    Project = "docker-aws-automation"
+    Environment = "learner-lab"
+  }
+}
+
 # Variables
 variable "instance_type" {
   description = "EC2 instance type"
   type        = string
-  default     = "t3.small"
+  default     = "t3.medium"
 }
 
 variable "key_name" {
