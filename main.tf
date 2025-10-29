@@ -10,15 +10,19 @@ terraform {
 
 provider "aws" {
   region = "us-east-1"
+
+  #IMPORTANTE para Learner Lab - ignorar tags requeridos
+  default_tags {
+    tags = {
+      Project = "docker-aws-automation"
+      Environment = "learner-lab"
+    }
+  }
+
+  skip_credentials_validation = true
+  skip_metadata_api_check     = true
 }
 
-#IMPORTANTE para Learner Lab - ignorar tags requeridos
-default_tags {
-  tags = {
-    Project = "docker-aws-automation"
-    Environment = "learner-lab"
-  }
-}
 
 # Variables
 variable "instance_type" {
