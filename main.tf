@@ -207,10 +207,6 @@ resource "aws_instance" "docker_host" {
     volume_type           = "gp3"
     delete_on_termination = true
     encrypted             = true
-
-    tags = {
-      Name = "${var.project_name}-root-volume2"
-    }
   }
 
   # User data script to install Docker and Docker Compose
@@ -299,7 +295,7 @@ resource "aws_instance" "docker_host" {
 
   # Volume tags
   volume_tags = {
-    Name        = "${var.project_name}-volume1"
+    Name        = "${var.project_name}-volume"
     Project     = var.project_name
     Environment = "production"
   }
