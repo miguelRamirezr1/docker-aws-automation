@@ -34,7 +34,7 @@ variable "instance_type" {
 variable "key_name" {
   description = "SSH key pair name"
   type        = string
-  default     = "docker-automation-key"
+  default     = "~/Documents/automatizacion/docker-aws-automation/labsuser.pem"
 }
 
 variable "project_name" {
