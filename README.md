@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Docker AWS Automation
 
 Automated deployment of several Docker services (Orion-LD, QuantumLeap, MongoDB, CrateDB, Grafana, and Streamlit Frontend) on AWS EC2 using Terraform.
@@ -237,3 +238,5 @@ sudo systemctl status docker
 - Enable AWS CloudWatch monitoring for production
 - Implement backup strategies for data volumes
 - Use AWS Secrets Manager for sensitive credentials
+=======
+>>>>>>> d386ca89c0082555cd2f8be098f2d6fd7dd05ffd

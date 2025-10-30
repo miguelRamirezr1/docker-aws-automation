@@ -43,6 +43,12 @@ variable "project_name" {
   default     = "docker-aws-automation"
 }
 
+variable "git_repository_url" {
+  description = "Git repository URL to clone (leave empty to skip)"
+  type        = string
+  default     = "https://github.com/miguelRamirezr1/docker-aws-automation.git"
+}
+
 # Data sources
 data "aws_ami" "ubuntu" {
   most_recent = true
@@ -56,6 +62,16 @@ data "aws_ami" "ubuntu" {
   filter {
     name   = "virtualization-type"
     values = ["hvm"]
+  }
+
+  filter {
+    name   = "architecture"
+    values = ["x86_64"]
+  }
+
+  filter {
+    name   = "root-device-type"
+    values = ["ebs"]
   }
 }
 
@@ -214,62 +230,191 @@ resource "aws_instance" "docker_host" {
               #!/bin/bash
               set -e
 
+              # Log function
+              log() {
+                echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" | tee -a /var/log/user-data.log
+              }
+
+              log "Starting user_data script..."
+
               # Update system
+              log "Updating system packages..."
               apt-get update
               apt-get upgrade -y
 
               # Install dependencies
+              log "Installing dependencies..."
               apt-get install -y \
                 apt-transport-https \
                 ca-certificates \
                 curl \
                 gnupg \
                 lsb-release \
-                git
+                git \
+                unzip
 
               # Install Docker
+              log "Installing Docker..."
               curl -fsSL https://get.docker.com -o get-docker.sh
               sh get-docker.sh
+              rm get-docker.sh
 
               # Add ubuntu user to docker group
+              log "Adding ubuntu user to docker group..."
               usermod -aG docker ubuntu
 
               # Install Docker Compose
+              log "Installing Docker Compose..."
               DOCKER_COMPOSE_VERSION="v2.24.0"
               curl -L "https://github.com/docker/compose/releases/download/$DOCKER_COMPOSE_VERSION/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
               chmod +x /usr/local/bin/docker-compose
               ln -sf /usr/local/bin/docker-compose /usr/bin/docker-compose
 
               # Enable and start Docker
+              log "Starting Docker service..."
               systemctl enable docker
               systemctl start docker
 
+              # Wait for Docker to be ready
+              log "Waiting for Docker to be ready..."
+              sleep 5
+
               # Create application directory
+              log "Creating application directory..."
               mkdir -p /home/ubuntu/app
               cd /home/ubuntu/app
 
-              # Clone repository (replace with your actual repository URL)
-              # git clone https://github.com/your-username/docker-aws-automation.git .
-
-              # For now, create a placeholder
-              echo "Application ready. Clone your repository and run docker-compose up -d"
+              # Clone repository if URL is provided
+              GIT_REPO_URL="${var.git_repository_url}"
+              if [ -n "$GIT_REPO_URL" ]; then
+                log "Cloning repository: $GIT_REPO_URL"
+                git clone "$GIT_REPO_URL" /home/ubuntu/app || {
+                  log "ERROR: Failed to clone repository"
+                  log "Please manually clone: git clone $GIT_REPO_URL /home/ubuntu/app"
+                }
+              else
+                log "No repository URL provided. Please manually clone your repository to /home/ubuntu/app"
+              fi
 
               # Set ownership
               chown -R ubuntu:ubuntu /home/ubuntu/app
 
-              # Create a startup script
+              # Create enhanced startup script
+              log "Creating start-services.sh script..."
               cat > /home/ubuntu/start-services.sh <<'SCRIPT'
               #!/bin/bash
+              set -e
+
+              echo "=== Docker Services Management Script ==="
+              echo "Started at: $(date)"
+              echo ""
+
+              # Navigate to app directory
               cd /home/ubuntu/app
-              docker-compose down
+
+              # Check if docker-compose.yml exists
+              if [ ! -f "docker-compose.yml" ]; then
+                echo "ERROR: docker-compose.yml not found in /home/ubuntu/app"
+                echo "Please clone your repository first:"
+                echo "  cd /home/ubuntu/app"
+                echo "  git clone <your-repo-url> ."
+                exit 1
+              fi
+
+              # Stop existing containers
+              echo "Stopping existing containers..."
+              docker-compose down || true
+
+              # Pull latest images
+              echo "Pulling latest Docker images..."
+              docker-compose pull || true
+
+              # Build custom images (like frontend)
+              echo "Building custom images..."
+              docker-compose build || true
+
+              # Start services
+              echo "Starting services..."
               docker-compose up -d
+
+              # Show status
+              echo ""
+              echo "Services status:"
+              docker-compose ps
+
+              echo ""
+              echo "=== Services started successfully! ==="
+              echo "Finished at: $(date)"
               SCRIPT
 
               chmod +x /home/ubuntu/start-services.sh
               chown ubuntu:ubuntu /home/ubuntu/start-services.sh
 
-              # Log completion
-              echo "Setup completed at $(date)" >> /var/log/user-data.log
+              # Create stop-services.sh script
+              log "Creating stop-services.sh script..."
+              cat > /home/ubuntu/stop-services.sh <<'SCRIPT'
+              #!/bin/bash
+              set -e
+
+              echo "=== Stopping Docker Services ==="
+              cd /home/ubuntu/app
+
+              if [ -f "docker-compose.yml" ]; then
+                docker-compose down
+                echo "Services stopped successfully!"
+              else
+                echo "ERROR: docker-compose.yml not found"
+                exit 1
+              fi
+              SCRIPT
+
+              chmod +x /home/ubuntu/stop-services.sh
+              chown ubuntu:ubuntu /home/ubuntu/stop-services.sh
+
+              # If repository was cloned and docker-compose.yml exists, start services
+              if [ -f "/home/ubuntu/app/docker-compose.yml" ]; then
+                log "docker-compose.yml found. Starting services..."
+
+                # Pull and build images
+                cd /home/ubuntu/app
+                log "Pulling Docker images..."
+                docker-compose pull || log "WARNING: Some images could not be pulled"
+
+                log "Building custom images..."
+                docker-compose build || log "WARNING: Build failed"
+
+                log "Starting Docker Compose services..."
+                docker-compose up -d || log "ERROR: Failed to start services"
+
+                # Wait a bit and show status
+                sleep 10
+                log "Services status:"
+                docker-compose ps | tee -a /var/log/user-data.log
+              else
+                log "docker-compose.yml not found. Services not started automatically."
+                log "After cloning your repository, run: /home/ubuntu/start-services.sh"
+              fi
+
+              # Create status check script
+              cat > /home/ubuntu/check-services.sh <<'SCRIPT'
+              #!/bin/bash
+              cd /home/ubuntu/app
+              echo "=== Docker Services Status ==="
+              docker-compose ps
+              echo ""
+              echo "=== Docker Images ==="
+              docker images
+              echo ""
+              echo "=== System Resources ==="
+              docker stats --no-stream
+              SCRIPT
+
+              chmod +x /home/ubuntu/check-services.sh
+              chown ubuntu:ubuntu /home/ubuntu/check-services.sh
+
+              log "User data script completed successfully!"
+              log "Docker version: $(docker --version)"
+              log "Docker Compose version: $(docker-compose --version)"
               EOF
 
   # Enable detailed monitoring
