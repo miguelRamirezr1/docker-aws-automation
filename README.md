@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # Docker AWS Automation
 
 Automated deployment of several Docker services (Orion-LD, QuantumLeap, MongoDB, CrateDB, Grafana, and Streamlit Frontend) on AWS EC2 using Terraform.
