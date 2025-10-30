@@ -299,6 +299,9 @@ resource "aws_instance" "docker_host" {
               # Set ownership
               chown -R ubuntu:ubuntu /home/ubuntu/app
 
+              #give time to clone the repository
+              sleep 10
+
               # Create enhanced startup script
               log "Creating start-services.sh script..."
               cat > /home/ubuntu/start-services.sh <<'SCRIPT'
