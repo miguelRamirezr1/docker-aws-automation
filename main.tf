@@ -350,6 +350,68 @@ resource "aws_instance" "docker_host" {
               chmod +x /home/ubuntu/start-services.sh
               chown ubuntu:ubuntu /home/ubuntu/start-services.sh
 
+              # Create stop-services.sh script
+              log "Creating stop-services.sh script..."
+              cat > /home/ubuntu/stop-services.sh <<'SCRIPT'
+              #!/bin/bash
+              set -e
+
+              echo "=== Stopping Docker Services ==="
+              cd /home/ubuntu/app
+
+              if [ -f "docker-compose.yml" ]; then
+                docker-compose down
+                echo "Services stopped successfully!"
+              else
+                echo "ERROR: docker-compose.yml not found"
+                exit 1
+              fi
+              SCRIPT
+
+              chmod +x /home/ubuntu/stop-services.sh
+              chown ubuntu:ubuntu /home/ubuntu/stop-services.sh
+
+              # If repository was cloned and docker-compose.yml exists, start services
+              if [ -f "/home/ubuntu/app/docker-compose.yml" ]; then
+                log "docker-compose.yml found. Starting services..."
+
+                # Pull and build images
+                cd /home/ubuntu/app
+                log "Pulling Docker images..."
+                docker-compose pull || log "WARNING: Some images could not be pulled"
+
+                log "Building custom images..."
+                docker-compose build || log "WARNING: Build failed"
+
+                log "Starting Docker Compose services..."
+                docker-compose up -d || log "ERROR: Failed to start services"
+
+                # Wait a bit and show status
+                sleep 10
+                log "Services status:"
+                docker-compose ps | tee -a /var/log/user-data.log
+              else
+                log "docker-compose.yml not found. Services not started automatically."
+                log "After cloning your repository, run: /home/ubuntu/start-services.sh"
+              fi
+
+              # Create status check script
+              cat > /home/ubuntu/check-services.sh <<'SCRIPT'
+              #!/bin/bash
+              cd /home/ubuntu/app
+              echo "=== Docker Services Status ==="
+              docker-compose ps
+              echo ""
+              echo "=== Docker Images ==="
+              docker images
+              echo ""
+              echo "=== System Resources ==="
+              docker stats --no-stream
+              SCRIPT
+
+              chmod +x /home/ubuntu/check-services.sh
+              chown ubuntu:ubuntu /home/ubuntu/check-services.sh
+
               log "User data script completed successfully!"
               log "Docker version: $(docker --version)"
               log "Docker Compose version: $(docker-compose --version)"
