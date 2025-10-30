@@ -10,7 +10,19 @@ terraform {
 
 provider "aws" {
   region = "us-east-1"
+
+  #IMPORTANTE para Learner Lab - ignorar tags requeridos
+  default_tags {
+    tags = {
+      Project = "docker-aws-automation"
+      Environment = "learner-lab"
+    }
+  }
+
+  skip_credentials_validation = true
+  skip_metadata_api_check     = true
 }
+
 
 # Variables
 variable "instance_type" {
@@ -211,10 +223,6 @@ resource "aws_instance" "docker_host" {
     volume_type           = "gp3"
     delete_on_termination = true
     encrypted             = true
-
-    tags = {
-      Name = "${var.project_name}-root-volume"
-    }
   }
 
   # User data script to install Docker and Docker Compose
