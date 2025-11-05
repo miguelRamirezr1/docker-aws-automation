@@ -117,22 +117,6 @@ service_urls = {
 ssh -i your-key.pem ubuntu@<public-ip>
 ```
 
-### 7. Deploy Docker Services
-
-On the EC2 instance:
-
-```bash
-# Clone this repository
-cd /home/ubuntu/app
-git clone <your-repo-url> .
-
-# Start all services
-docker-compose up -d
-
-# Or use the provided script
-/home/ubuntu/start-services.sh
-```
-
 ### 8. Verify Services
 
 Check service status:
@@ -238,4 +222,3 @@ sudo systemctl status docker
 - Implement backup strategies for data volumes
 - Use AWS Secrets Manager for sensitive credentials
 =======
->>>>>>> d386ca89c0082555cd2f8be098f2d6fd7dd05ffd
