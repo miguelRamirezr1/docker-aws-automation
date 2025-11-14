@@ -492,7 +492,7 @@ output "security_group_id" {
 
 output "ssh_command" {
   description = "SSH command to connect to the instance"
-  value       = "ssh -i ${var.key_name}.pem ubuntu@${aws_eip.docker_host.public_ip}"
+  value       = "ssh -i ${var.key_name} ubuntu@${aws_eip.docker_host.public_ip}"
 }
 
 output "service_urls" {
